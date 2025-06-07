@@ -1,90 +1,64 @@
-@Library('jenkins-shared-library@main') _
+// Jenkinsfile
 pipeline {
+    agent any // This tells Jenkins to run the pipeline on any available agent
 
-  agent any
-  
-  parameters {
-	choice(name: 'action', choices: 'create\nrollback', description: 'Create/rollback of the deployment')
-    string(name: 'ImageName', description: "Name of the docker build", defaultValue: "kubernetes-configmap-reload")
-	string(name: 'ImageTag', description: "Name of the docker build",defaultValue: "v1")
-	string(name: 'AppName', description: "Name of the Application",defaultValue: "kubernetes-configmap-reload")
-    string(name: 'docker_repo', description: "Name of docker repository",defaultValue: "praveensingam1994")
-  }
-      
-  tools{ 
-        maven 'maven3'
-    }
     stages {
-        stage('Git-Checkout') {
-            when {
-				expression { params.action == 'create' }
-			}
+        stage('Checkout') {
             steps {
-                gitCheckout(
-                    branch: "main",
-                    url: "https://github.com/DEVOPS-WITH-WEB-DEV/spring-cloud-kubernetes.git"
-                )
+                // Assuming your Jenkins project is configured to pull from a Git repo
+                // This step is often implicitly handled by Jenkins if configured correctly
+                // or you can explicitly define it:
+                git branch: 'main', url: 'https://github.com/your-org/your-app.git'
             }
         }
-        stage('Build-Maven'){
-            when {
-				expression { params.action == 'create' }
-			}
-    		steps {
-        		dir("${params.AppName}") {
-        			sh 'mvn clean package'
-        		}
-    		}
-	    }
-	    stage("DockerBuild and Push") {
-	        when {
-				expression { params.action == 'create' }
-			}
-	        steps {
-	            dir("${params.AppName}") {
-	                dockerBuild ( "${params.ImageName}", "${params.docker_repo}" )
-	            }
-	        }
-	    }
-	    stage("Docker-CleanUP") {
-	        when {
-				expression { params.action == 'create' }
-			}
-	        steps {
-	            dockerCleanup ( "${params.ImageName}", "${params.docker_repo}" )
-			}
-		}
-			    stage("Ansible Setup") {
-	        when {
-				expression { params.action == 'create' }
-			}
-	        steps {
-	            sh 'ansible-playbook ${WORKSPACE}/kubernetes-configmap-reload/server_setup.yml'
-			}
-		}
-	    stage("Create deployment") {
-			when {
-				expression { params.action == 'create' }
-			}
-	        steps {
-	            sh 'echo ${WORKSPACE}'
-	            sh 'kubectl create -f ${WORKSPACE}/kubernetes-configmap-reload/kubernetes-configmap.yml'
-	        }
-	    }
-	    stage ("wait_for_pods"){
-	    steps{
-              
-                sh 'sleep 300'
-             
-	    }
-	    }
-		stage("rollback deployment") {
-	        steps {	            	         	           
-	              sh """
-	                   kubectl delete deploy ${params.AppName}
-					    kubectl delete svc ${params.AppName}
-				  """	       
-	        }
-	    }
+
+        stage('Build') {
+            steps {
+                echo 'Building the application...'
+                // For a Java project using Maven:
+                sh 'mvn clean install -DskipTests'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                // For a Java project using Maven:
+                sh 'mvn test'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo 'Packaging the application...'
+                // For a Java project, copy the JAR/WAR file
+                sh 'cp target/*.jar .' // Copies the built JAR to the workspace root
+            }
+        }
+
+        stage('Deploy (Manual)') {
+            steps {
+                echo 'Application ready for manual deployment.'
+                // In a real scenario, this might involve deploying to a dev environment
+                // For simplicity, we'll just indicate it's ready.
+                input message: 'Proceed with deployment to QA?' // Adds a manual approval step
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+            // Clean up workspace
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline successful!'
+            // Add notifications for success, e.g., Slack, Email
+        }
+        failure {
+            echo 'Pipeline failed!'
+            // Add notifications for failure
+        }
     }
 }
