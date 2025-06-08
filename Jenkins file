@@ -1,64 +1,21 @@
-// Jenkinsfile
 pipeline {
-    agent any // This tells Jenkins to run the pipeline on any available agent
+    agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                // Assuming your Jenkins project is configured to pull from a Git repo
-                // This step is often implicitly handled by Jenkins if configured correctly
-                // or you can explicitly define it:
-                git branch: 'main', url: 'https://github.com/your-org/your-app.git'
-            }
-        }
-
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                // For a Java project using Maven:
-                sh 'mvn clean install -DskipTests'
+                echo 'Building..'
             }
         }
-
         stage('Test') {
             steps {
-                echo 'Running tests...'
-                // For a Java project using Maven:
-                sh 'mvn test'
+                echo 'Testing..'
             }
         }
-
-        stage('Package') {
+        stage('Deploy') {
             steps {
-                echo 'Packaging the application...'
-                // For a Java project, copy the JAR/WAR file
-                sh 'cp target/*.jar .' // Copies the built JAR to the workspace root
-            }
-        }
-
-        stage('Deploy (Manual)') {
-            steps {
-                echo 'Application ready for manual deployment.'
-                // In a real scenario, this might involve deploying to a dev environment
-                // For simplicity, we'll just indicate it's ready.
-                input message: 'Proceed with deployment to QA?' // Adds a manual approval step
+                echo 'Deploying....'
             }
         }
     }
-
-    post {
-        always {
-            echo 'Pipeline finished.'
-            // Clean up workspace
-            cleanWs()
-        }
-        success {
-            echo 'Pipeline successful!'
-            // Add notifications for success, e.g., Slack, Email
-        }
-        failure {
-            echo 'Pipeline failed!'
-            // Add notifications for failure
-        }
-    }
 }
