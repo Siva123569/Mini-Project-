@@ -8,6 +8,8 @@ jobs:
 
     steps:
       - name: Print hello world
-        run: echo "siva"
+        run: | 
+         echo "siva"
+         echo "siva01"
 
     
